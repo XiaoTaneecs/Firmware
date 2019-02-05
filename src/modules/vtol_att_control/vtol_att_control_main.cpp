@@ -89,6 +89,8 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 
+	_params_handles.v19_vt_rolldir = param_find("V19_VT_ROLLDIR");
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -504,6 +506,9 @@ VtolAttitudeControl::parameters_update()
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
 
+	// Bugfix for v1.9, should be removed in 1.10
+	param_get(_params_handles.v19_vt_rolldir, &_params.v19_vt_rolldir);
+
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
 		_vtol_type->parameters_update();
@@ -663,7 +668,19 @@ void VtolAttitudeControl::task_main()
 			_vtol_type->update_transition_state();
 		}
 
-		_vtol_type->fill_actuator_outputs();
+		if (_params.v19_vt_rolldir) {
+
+			// The mixer may not have been adapted to the roll inversion in v1.9
+			// Display error message and do not fill actuator outputs
+			// TODO: remove the parameter and this error message in v1.10
+			mavlink_log_critical(&_mavlink_log_pub,
+					     "Abort: The VTOL roll commands were inverted in v1.9!\nCheck roll mixing carefully, then set V19_VT_ROLLDIR to 0");
+
+		} else {
+
+			// normal operation
+			_vtol_type->fill_actuator_outputs();
+		}
 
 		/* Only publish if the proper mode(s) are enabled */
 		if (_v_control_mode.flag_control_attitude_enabled ||
