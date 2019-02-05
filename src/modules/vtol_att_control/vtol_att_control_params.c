@@ -334,6 +334,7 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_SC, 0.1f);
  * @min 0
  * @max 1
  * @decimal 0
+ * @category system
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(V19_VT_ROLLDIR, 1);
